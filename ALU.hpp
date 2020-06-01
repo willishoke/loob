@@ -1,50 +1,9 @@
+#ifndef ALU_HPP
+#define ALU_HPP
+
 #include <vector>
 #include <cmath>
 #include "Muxes.hpp"
-
-// Data (D) is input 0
-// Enable (Clk) is input 1
-// Value (Q) is output 0
-
-class DFlipFlop : public ControlComponent
-{
-  public:
-    DFlipFlop() : ControlComponent(1, 1, 1) {}
-
-    void process()
-    {
-      Signal data = _inputs.at(0);
-      Signal clk = _controls.at(0);
- 
-      // Data -> Gate 0 (inverter)
-      _gate0.listen(0, data);
-
-      // Data, Clk -> Gate 1 
-      _gate1.listen(0, data);
-      _gate1.listen(1, clk);
-
-      // Clock, Gate 0 -> Gate 2
-      _gate2.listen(0, clk);
-      _gate2.listen(1, _gate0.output());
-
-      // Gate 1 -> Gate 3
-      _gate3.listen(0, _gate1.output());
-
-      // Gate 2 -> Gate 4
-      _gate4.listen(0, _gate3.output());
-
-      // Gate 4 -> Gate 3
-      _gate3.listen(1, _gate4.output());
-
-      // Gate 3 -> Gate 4, Output 0
-      _gate4.listen(1, _gate3.output());
-      _outputs.at(0) = _gate3.output();
-    
-    }
-  private:
-    Inverter _gate0;
-    NAND _gate1, _gate2, _gate3, _gate4;
-};
 
 
 class FullAdder : public Component
@@ -59,24 +18,29 @@ class FullAdder : public Component
       Signal carry = _inputs.at(2);
       
       // Data 0, Data 1 -> Gate 0
-      _gate0.listen(0, data0);
-      _gate0.listen(1, data1);
+      _gate0.input(0, data0);
+      _gate0.input(1, data1);
+      _gate0.process();
        
       // Carry, Gate 0 -> Gate 1
-      _gate1.listen(0, carry);
-      _gate1.listen(1, _gate0.output());
+      _gate1.input(0, carry);
+      _gate1.input(1, _gate0.output());
+      _gate1.process();
 
       // Data 0, Data 1 -> Gate 2
-      _gate2.listen(0, data0);
-      _gate2.listen(1, data1);
+      _gate2.input(0, data0);
+      _gate2.input(1, data1);
+      _gate2.process();
 
       // Gate 0, Carry -> Gate 3
-      _gate3.listen(0, _gate0.output());
-      _gate3.listen(1, carry);
+      _gate3.input(0, _gate0.output());
+      _gate3.input(1, carry);
+      _gate3.process();
 
       // Gate 1, Gate 2 -> Gate 4 
-      _gate4.listen(0, _gate1.output());
-      _gate4.listen(1, _gate2.output());
+      _gate4.input(0, _gate1.output());
+      _gate4.input(1, _gate2.output());
+      _gate4.process();
 
       _outputs.at(0) = _gate3.output();
       _outputs.at(1) = _gate4.output();
@@ -88,23 +52,30 @@ class FullAdder : public Component
     OR _gate4;
 };
 
-class Word8Adder : public Word8Component
+template <int WordSize>
+class WordAdder : public WordComponent<WordSize>
 {
   public:
-    Word8Adder(unsigned int n) : Word8Component(2, 1), _adders(n) {}
+    WordAdder() : WordComponent<WordSize>(2, 1), _adders(WordSize) {}
  
     void process()
     {
-      for (auto i = 0; i < 8; ++i)
+      auto word0 = this->_inputs.at(0);
+      auto word1 = this->_inputs.at(1);
+      auto result = this->_outputs.at(0);
+
+      for (auto i = 0; i < WordSize; ++i)
       {
-        FullAdder& a = _adders.at(i); 
-        //a.listen(0, _inputs.at(i).output(i));
-        //a.listen(1, _inputs.at(i+s).output(i));
+        auto a = _adders.at(i); 
+        a.input(0, word0.bit(i));
+        a.input(1, word1.bit(i));
         
-        if (i > 0)
+        if (i+1 < WordSize)
         {
-           
+          auto next = _adders.at(i+1);    
+          
         }
+        a.process(); 
       } 
     } 
   private:
@@ -139,3 +110,5 @@ class CPU : public Component
   private:
     ALU alu;
 };
+
+#endif //ALU_HPP

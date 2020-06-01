@@ -1,5 +1,9 @@
+#ifndef COMPONENTS_HPP
+#define COMPONENTS_HPP
+
 #include <vector>
 #include <stdint.h>
+#include <iostream>
 
 // Signal alias
 // Bool would work too, but this lets us use 1's and 0's
@@ -9,25 +13,23 @@ using Signal = uint8_t;
 
 // Component is an abstract base class.
 // Components have inputs and outputs.
-// An external object can call listen to update a component's input.
-// Anytime listen is called, the process method will be called to
+// An external object can call input to update a component's input.
+// Anytime input is called, the process method will be called to
 // update the component's output value(s).
 
 class Component
 {
   public:
     Component(int inputs, int outputs) :
-      _inputs(inputs, 0), _outputs(outputs, 0) {}
+      _inputs(inputs), _outputs(outputs) {}
 
     // Process propogates a Signal through the component to its output
     virtual void process() = 0;
 
-    // This happens ANY time ANY input is changed
-    // Set input, then call process to update outputs
-    void listen(int channel, Signal s)
+    
+    void input(int channel, Signal s)
     {
       _inputs.at(channel) = s;
-      process(); 
     }
 
     // Get output from a component with a single output
@@ -42,6 +44,14 @@ class Component
       return _outputs.at(channel);
     }
 
+    void printValue()
+    {
+      for (auto o : _outputs)
+      {
+        std::cout << (int) o;
+      }
+      std::cout << std::endl;
+    }
   protected:
     // These are for Signals.
     // They represent the last known state of inputs and outputs.
@@ -56,38 +66,49 @@ class ControlComponent : public Component
       Component(inputs, outputs), _controls(controls) {}
 
     // Set control, then call process to update outputs
-    void controlListen(int channel, Signal s)
+    void control(int channel, Signal s)
     {
       _controls.at(channel) = s;
-      process();
     }
 
   protected:
     std::vector<Signal> _controls;
 };
 
-class Word8
+// Big-endian words
+
+template <int N>
+class Word
 {
   public:
-    Word8() : _word(8) {}
+    Word() : _word(N) {}
     
     Signal bit(int position)
     {
       return _word.at(position);
     }
-     
+
+    void printValue()
+    {
+      for (auto s : _word)
+      {
+        std::cout << s;
+      } 
+      std::cout << std::endl;
+    } 
   private:
     std::vector<Signal> _word;
 };
 
-class Word8Component
+template <int N>
+class WordComponent
 {
   public:
-    Word8Component(int inputs, int outputs) :
+    WordComponent(int inputs, int outputs) :
       _inputs(inputs), _outputs(outputs) {} 
     
     // Get output from a component with a single output
-    const Word8& output()
+    const Word<N>& output()
     {
       return _outputs.at(0);
     }
@@ -97,33 +118,44 @@ class Word8Component
 
     // This happens ANY time ANY input is changed
     // Set input, then call process to update outputs
-    void listen(int channel, Word8& s)
+    void input(int channel, Word<N>& s)
     {
       _inputs.at(channel) = s;
-      process(); 
     }
 
     // Get output from a multi-output component on a given channel
-    const Word8& output(int channel)
+    const Word<N>& output(int channel)
     {
       return _outputs.at(channel);
     }
+
+    void printValue()
+    {
+      for (auto o : _outputs)
+      {
+        o.printValue();
+      }
+      std::cout << std::endl;
+    }
      
   protected:
-    std::vector<Word8> _inputs;
-    std::vector<Word8> _outputs;
+    std::vector<Word<N>> _inputs;
+    std::vector<Word<N>> _outputs;
 };
 
-class Word8ControlComponent : public Word8Component
+template <int N>
+class WordControlComponent : public WordComponent<N>
 {
   public:
-    Word8ControlComponent(int inputs, int controls, int outputs) : 
-      Word8Component(inputs, outputs), _controls(controls) {}
+    WordControlComponent(int inputs, int controls, int outputs) : 
+      WordComponent<N>(inputs, outputs), _controls(controls) {}
 
-    void controlListen(int channel, Signal s)
+    void control(int channel, Signal s)
     {
       _controls.at(channel) = s;
     }
   protected:
     std::vector<Signal> _controls;
 };
+
+#endif // COMPONENTS_HPP

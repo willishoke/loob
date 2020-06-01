@@ -1,3 +1,6 @@
+#ifndef MUXES_HPP
+#define MUXES_HPP
+
 #include "Gates.hpp"
 
 class Multiplexer : public ControlComponent
@@ -12,19 +15,23 @@ class Multiplexer : public ControlComponent
       Signal control = _controls.at(0);
 
       // Control -> Gate 0
-      _gate0.listen(0, control);
+      _gate0.input(0, control);
+      _gate0.process();
 
       // Data 0, Control -> Gate 1
-      _gate1.listen(0, data0);
-      _gate1.listen(1, control);
+      _gate1.input(0, data0);
+      _gate1.input(1, _gate0.output());
+      _gate1.process();
 
       // Control, Data 1 -> Gate 2
-      _gate2.listen(0, control);
-      _gate2.listen(1, data1);
+      _gate2.input(0, control);
+      _gate2.input(1, data1);
+      _gate2.process();
     
       // Gate 1, Gate 2 -> Gate 3 
-      _gate3.listen(0, _gate1.output());
-      _gate3.listen(1, _gate2.output()); 
+      _gate3.input(0, _gate1.output());
+      _gate3.input(1, _gate2.output()); 
+      _gate3.process();
 
       _outputs.at(0) = _gate3.output();
     }
@@ -34,20 +41,22 @@ class Multiplexer : public ControlComponent
     NAND _gate1, _gate2, _gate3;
 };
 
-class Word8Multiplexer : public Word8ControlComponent
+template <int WordSize>
+class WordMultiplexer : public WordControlComponent<WordSize>
 {
   public:
-    Word8Multiplexer() : Word8ControlComponent(2, 1, 1) {}
+    WordMultiplexer() : 
+      WordControlComponent<WordSize>(2, 1, 1), _multiplexers(WordSize) {}
     
     void process()
     {
-      for (auto i = 0; i < 8; ++i)  
+      for (auto i = 0; i < WordSize; ++i)  
       {
         Multiplexer& m = _multiplexers.at(i);
-
-        m.listen(i, _inputs.at(0).bit(i));
-        m.listen(i, _inputs.at(1).bit(i));
-        m.controlListen(i, _controls.at(0));
+        m.input(i, this->_inputs.at(0).bit(i));
+        m.input(i, this->_inputs.at(1).bit(i));
+        m.control(i, this->_controls.at(0));
+        m.process();
       }
     }
 
@@ -55,28 +64,80 @@ class Word8Multiplexer : public Word8ControlComponent
     std::vector<Multiplexer> _multiplexers;
 };
 
-template <int N> 
+class Demultiplexer : public ControlComponent
+{
+  public:
+    Demultiplexer() : ControlComponent(1, 1, 2) {}
+    
+    void process()
+    {
+      _gate0.input(0, _controls.at(0));
+      _gate0.process();
+      
+      _gate1.input(0, _gate0.output());
+      _gate1.input(1, _inputs.at(0));
+      _gate1.process();
+
+      _gate2.input(0, _inputs.at(0));
+      _gate2.input(1, _controls.at(0));
+      _gate2.process();
+
+      _outputs.at(0) = _gate1.output();
+      _outputs.at(1) = _gate2.output();
+    }
+
+  private: 
+    Inverter _gate0;
+    AND _gate1, _gate2; 
+};
+
+template <int WordSize>
+class WordDemultiplexer : public WordControlComponent<WordSize>
+{
+  public:
+    WordDemultiplexer() : 
+      WordControlComponent<WordSize>(2, 1, 1), _demultiplexers(WordSize) {}
+    
+    void process()
+    {
+      for (auto i = 0; i < WordSize; ++i)  
+      {
+        Demultiplexer& m = _demultiplexers.at(i);
+        m.input(i, this->_inputs.at(0).bit(i));
+        m.input(i, this->_inputs.at(1).bit(i));
+        m.control(i, this->_controls.at(0));
+        m.process();
+      }
+    }
+
+  private:
+    std::vector<Demultiplexer> _demultiplexers;
+};
+
+// Multiplex an arbitrary number of Signals
+
+template <int N> // Parameterized on number of control bits
 class Mux : public ControlComponent
 {
-  static_assert(N >= 2);
-
-  // Size must be a power of 2
-  static_assert(pow(2, (int) log2(N)) == (int) N);
+  static_assert(N >= 1);
 
   public:
-    Mux() : ControlComponent (N, log2(N), 1) {}
+    Mux() : ControlComponent (N*N, N, 1) {}
 
     void process()
     {
-      int inputCount = _inputs.size();
-      for (int i = 0; i < inputCount/2; ++i)
+      for (int i = 0; i < (N*N)/2; ++i)
       {
-        _mux0.listen(i, _inputs.at(i));
-        _mux1.listen(i, _inputs.at(i + inputCount/2));
+        _mux0.input(i, _inputs.at(i));
+        _mux1.input(i, _inputs.at(i + (N*N)/2));
       }
+
+      _mux0.process();
+      _mux1.process();
       
-      _mux2.listen(0, _mux0.output());
-      _mux2.listen(1, _mux1.output());
+      _mux2.input(0, _mux0.output());
+      _mux2.input(1, _mux1.output());
+      _mux2.process();
     }
 
   private:
@@ -86,65 +147,73 @@ class Mux : public ControlComponent
 };
 
 template <> 
-class Mux<2> : public ControlComponent
+class Mux<1> : public ControlComponent
 {
   public:
     Mux() : ControlComponent(2, 1, 1) {}
     
     void process()
     {
-      _mux0.listen(0, _inputs.at(0));
-      _mux0.listen(1, _inputs.at(1)); 
-      _mux0.controlListen(0, _controls.at(0)); 
+      _mux0.input(0, _inputs.at(0));
+      _mux0.input(1, _inputs.at(1)); 
+      _mux0.control(0, _controls.at(0)); 
+      _mux0.process();
     }
 
   private:
     Multiplexer _mux0;
 };
 
-template <int N> 
-class Word8Mux : public Word8ControlComponent
-{
-  static_assert(N >= 2);
+// Multiplex an arbitrary number of Words
 
-  // Size must be a power of 2
-  static_assert(pow(2, (int) log2(N)) == (int) N);
+template <int N, int WordSize> // Parameterized on number of control bits
+class WordMux : public WordControlComponent<WordSize>
+{
+  static_assert(N >= 1);
 
   public:
-    Word8Mux() : Word8ControlComponent (N, log2(N), 1) {}
+    WordMux() : WordControlComponent<WordSize> (N*N, N, 1) {}
 
     void process()
     {
-      int inputCount = _inputs.size();
-      for (int i = 0; i < inputCount/2; ++i)
-      {
-        _mux0.listen(i, _inputs.at(i));
-        _mux1.listen(i, _inputs.at(i + inputCount/2));
-      }
+      _mux0.input(0, this->_inputs.at(0));
+      _mux0.input(1, this->_inputs.at(1));
+      _mux0.control(0, this->_controls.at(N));
+      _mux0.process();
+      /*
+      _mux1.input(0, this->_inputs.at(i + inputCount/2));
+      _mux1.input(1, this->_inputs.at(i + inputCount/2));
+      _mux1.control(0, this->_controls.at(N));
       
-      _mux2.listen(0, _mux0.output());
-      _mux2.listen(1, _mux1.output());
+      _mux2.input(0, _mux0.output());
+      _mux2.input(1, _mux1.output());
+      _mux1.control(0, this->_controls.at(N-1));
+
+      */
     }
 
   private:
-    Word8Mux<N/2> _mux0;
-    Word8Mux<N/2> _mux1;
-    Word8Multiplexer _mux2;
+    WordMux<N-1, WordSize> _mux0;
+    WordMux<N-1, WordSize> _mux1;
+    WordMultiplexer<WordSize> _mux2;
 };
 
-template <> 
-class Word8Mux<2> : public Word8ControlComponent
+template <int WordSize> 
+class WordMux<1, WordSize> : public WordControlComponent<WordSize>
 {
   public:
-    Word8Mux() : Word8ControlComponent(2, 1, 1) {}
+    WordMux() : WordControlComponent<WordSize>(2, 1, 1) {}
     
     void process()
     {
-      _mux0.listen(0, _inputs.at(0));
-      _mux0.listen(1, _inputs.at(1)); 
-      _mux0.controlListen(0, _controls.at(0)); 
+      _mux0.input(0, this->_inputs.at(0));
+      _mux0.input(1, this->_inputs.at(1)); 
+      _mux0.control(0, this->_controls.at(0)); 
+      _mux0.process();
     }
 
   private:
-    Word8Multiplexer _mux0;
+    WordMultiplexer<WordSize> _mux0;
 };
+
+#endif // MUXES_HPP

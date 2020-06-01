@@ -1,8 +1,10 @@
+#ifndef GATES_HPP
+#define GATES_HPP
+
 #include "Components.hpp"
 
-// Everything is built from NAND gates, even other gates.
-// NAND gates are the only gate that directly manipulate
-// bits.
+// Everything is built from NAND gates.
+// NAND gates are the only gate that directly manipulate bits.
 
 class NAND : public Component
 {
@@ -41,8 +43,7 @@ class AND : public Component
     void process();
 
   private:
-    NAND _gate0;
-    Inverter _gate1;
+    NAND _gate0, _gate1;
 };
 
 // A ∨ B = ~(~A ∧ ~B)
@@ -55,8 +56,7 @@ class OR : public Component
     void process();
 
   private:
-    Inverter _gate0, _gate1;
-    NAND _gate2;
+    NAND _gate0, _gate1, _gate2;
 };
 
 // A ⊕ B 
@@ -85,8 +85,9 @@ void Inverter::process()
 {
   Signal in0 = _inputs.at(0);
 
-  _gate0.listen(0, in0);
-  _gate0.listen(1, in0);
+  _gate0.input(0, in0);
+  _gate0.input(1, in0);
+  _gate0.process();
 
   _outputs.at(0) = _gate0.output();      
 }
@@ -96,10 +97,13 @@ void AND::process()
   Signal in0 = _inputs.at(0);
   Signal in1 = _inputs.at(1);
 
-  _gate0.listen(0, in0);
-  _gate0.listen(1, in1);
+  _gate0.input(0, in0);
+  _gate0.input(1, in1);
+  _gate0.process();
 
-  _gate1.listen(0, _gate0.output());
+  _gate1.input(0, _gate0.output());
+  _gate1.input(1, _gate0.output());
+  _gate1.process();
 
   _outputs.at(0) = _gate1.output();
 }
@@ -110,14 +114,21 @@ void OR::process()
   Signal input1 = _inputs.at(1);
 
   // Input 0 -> Gate 0
-  _gate0.listen(0, input0);
+  _gate0.input(0, input0);
+  _gate0.input(1, input0);
+  _gate0.process();
 
   // Input 1 -> Gate 1 
-  _gate1.listen(0, input1);
+  _gate1.input(0, input1);
+  _gate1.input(1, input1);
+  _gate1.process();
 
   // Gate 0, Gate 1 -> Gate 2
-  _gate2.listen(0, _gate0.output());
-  _gate2.listen(1, _gate1.output());
+  _gate2.input(0, _gate0.output());
+  _gate2.input(1, _gate1.output());
+  _gate2.process();
+
+  _outputs.at(0) = _gate2.output();
 }
 
 void XOR::process()
@@ -126,20 +137,26 @@ void XOR::process()
   Signal input1 = _inputs.at(1);
 
   // Input 0, Input 1 -> Gate 0
-  _gate0.listen(0, input0);
-  _gate0.listen(1, input1);
+  _gate0.input(0, input0);
+  _gate0.input(1, input1);
+  _gate0.process();
 
   // Input 0, Gate 0 -> Gate 1 
-  _gate1.listen(0, input0);
-  _gate1.listen(1, _gate0.output());
+  _gate1.input(0, input0);
+  _gate1.input(1, _gate0.output());
+  _gate1.process();
 
-  // Gate 1, Input 1 -> Gate 2
-  _gate2.listen(0, _gate1.output());
-  _gate2.listen(1, input1);
+  // Gate 0, Input 1 -> Gate 2
+  _gate2.input(0, _gate0.output());
+  _gate2.input(1, input1);
+  _gate2.process();
 
   // Gate 1, Gate 2 -> Gate 3
-  _gate3.listen(0, _gate1.output());
-  _gate3.listen(1, _gate2.output());
+  _gate3.input(0, _gate1.output());
+  _gate3.input(1, _gate2.output());
+  _gate3.process();
 
   _outputs.at(0) = _gate3.output();
 }
+
+#endif // GATES_HPP
