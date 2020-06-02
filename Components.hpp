@@ -147,7 +147,6 @@ class WordComponent
       {
         o.printValue();
       }
-      std::cout << std::endl;
     } 
      
   protected:

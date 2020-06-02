@@ -72,6 +72,124 @@ class XOR : public Component
     NAND _gate0, _gate1, _gate2, _gate3;
 };
 
+template <int N>
+class WordInverter : public WordComponent<N>
+{
+  public:
+    WordInverter() : 
+      WordComponent<N>(1, 1), 
+      _inverters(N) {}
+  
+    void process()
+    {
+      for (auto i = 0; i < N; ++i)
+      {
+        Inverter& v = _inverters.at(i);
+        v.input(0, this->_inputs.at(0).bit(i));
+        v.process();
+        this->_outputs.at(0).bit(i) = v.output();
+      }
+    }
+
+  private:
+    std::vector<Inverter> _inverters;
+}; 
+
+template <int N>
+class WordNAND : public WordComponent<N>
+{
+  public:
+    WordNAND() : 
+      WordComponent<N>(2, 1), 
+      _gates(N) {}
+  
+    void process()
+    {
+      for (auto i = 0; i < N; ++i)
+      {
+        NAND& n = _gates.at(i);
+        n.input(0, this->_inputs.at(0).bit(i));
+        n.input(1, this->_inputs.at(1).bit(i));
+        n.process();
+        this->_outputs.at(0).bit(i) = n.output();
+      }
+    }
+
+  private:
+    std::vector<NAND> _gates;
+}; 
+
+template <int N>
+class WordAND : public WordComponent<N>
+{
+  public:
+    WordAND() : 
+      WordComponent<N>(2, 1), 
+      _gates(N) {}
+  
+    void process()
+    {
+      for (auto i = 0; i < N; ++i)
+      {
+        AND& n = _gates.at(i);
+        n.input(0, this->_inputs.at(0).bit(i));
+        n.input(1, this->_inputs.at(1).bit(i));
+        n.process();
+        this->_outputs.at(0).bit(i) = n.output();
+      }
+    }
+
+  private:
+    std::vector<AND> _gates;
+}; 
+
+template <int N>
+class WordOR : public WordComponent<N>
+{
+  public:
+    WordOR() : 
+      WordComponent<N>(2, 1), 
+      _gates(N) {}
+  
+    void process()
+    {
+      for (auto i = 0; i < N; ++i)
+      {
+        OR& o = _gates.at(i);
+        o.input(0, this->_inputs.at(0).bit(i));
+        o.input(1, this->_inputs.at(1).bit(i));
+        o.process();
+        this->_outputs.at(0).bit(i) = o.output();
+      }
+    }
+
+  private:
+    std::vector<OR> _gates;
+}; 
+
+template <int N>
+class WordXOR : public WordComponent<N>
+{
+  public:
+    WordXOR() : 
+      WordComponent<N>(2, 1), 
+      _gates(N) {}
+  
+    void process()
+    {
+      for (auto i = 0; i < N; ++i)
+      {
+        XOR& x = _gates.at(i);
+        x.input(0, this->_inputs.at(0).bit(i));
+        x.input(1, this->_inputs.at(1).bit(i));
+        x.process();
+        this->_outputs.at(0).bit(i) = x.output();
+      }
+    }
+
+  private:
+    std::vector<XOR> _gates;
+}; 
 
 void NAND::process()
 {

@@ -101,17 +101,20 @@ class WordDemultiplexer : public WordControlComponent<N>
 {
   public:
     WordDemultiplexer() : 
-      WordControlComponent<N>(2, 1, 1), _demultiplexers(N) {}
+      WordControlComponent<N>(1, 1, 2), _demultiplexers(N) {}
     
     void process()
     {
       for (auto i = 0; i < N; ++i)  
       {
-        Demultiplexer& m = _demultiplexers.at(i);
-        m.input(i, this->_inputs.at(0).bit(i));
-        m.input(i, this->_inputs.at(1).bit(i));
-        m.control(i, this->_controls.at(0));
-        m.process();
+        Demultiplexer& d = _demultiplexers.at(i);
+
+        d.input(0, this->_inputs.at(0).bit(i));
+        d.control(0, this->_controls.at(0));
+        d.process();
+
+        this->_outputs.at(0).bit(i) = d.output(0);
+        this->_outputs.at(1).bit(i) = d.output(1);
       }
     }
 
