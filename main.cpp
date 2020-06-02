@@ -13,6 +13,8 @@ void testFlipFlop();
 void testFullAdder();
 void testWordAdder();
 void testWordMultiplexer();
+void testWordMemory();
+
 
 void testAll()
 {
@@ -26,12 +28,12 @@ void testAll()
   testWordAdder();
   testMultiplexer();
   testWordMultiplexer();
+  testWordMemory();
 }
 
 int main(int argc, char** argv)
 {
   testAll();
-  return 0;
 }
 
 
@@ -211,6 +213,70 @@ void testFlipFlop()
   d.control(0, 1);
   d.process();
   assert(d.output() == 0);
+}
+
+void testWordMemory()
+{
+  WordMemory<4> m;
+
+  Word<4> w0({0,1,1,1}); 
+  Word<4> w1({0,0,1,0}); 
+
+  // Word 0, Enable 1 -> Word 0
+  m.input(0, w0);
+  m.control(0, 1);
+  m.process();
+  m.printValue();
+  assert(m.output() == w0);
+
+  // Word 1, Enable 0 -> Q (Word 0)
+  m.input(0, w1);
+  m.control(0, 0);
+  m.process();
+  m.printValue();
+  assert(m.output() == w0);
+
+  // Word 0, Enable 0 -> Q (Word 0)
+  m.input(0, w0);
+  m.control(0, 0);
+  m.process();
+  m.printValue();
+  assert(m.output() == w0);
+
+  // Word 0, Enable 1 -> Word 0
+  m.input(0, w0);
+  m.control(0, 1);
+  m.process();
+  m.printValue();
+  assert(m.output() == w0);
+
+  // Word 1, Enable 1 -> Word 1 
+  m.input(0, w1);
+  m.control(0, 1);
+  m.process();
+  m.printValue();
+  assert(m.output() == w1);
+  
+  // Word 1, Enable 0 -> Q (Word 1)
+  m.input(0, w1);
+  m.control(0, 0);
+  m.process();
+  m.printValue();
+  assert(m.output() == w1);
+
+  // Word 1, Enable 1 -> Word 1
+  m.input(0, w1);
+  m.control(0, 1);
+  m.process();
+  m.printValue();
+  assert(m.output() == w1);
+
+  // Word 0, Enable 1 -> Word 1
+  m.input(0, w0);
+  m.control(0, 1);
+  m.process();
+  m.printValue();
+  assert(m.output() == w0);
 }
 
 void testFullAdder()
