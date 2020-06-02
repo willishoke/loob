@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdint.h>
 #include <iostream>
+#include <algorithm>
 
 // Signal alias
 // Bool would work too, but this lets us use 1's and 0's
@@ -82,8 +83,9 @@ class Word
 {
   public:
     Word() : _word(N) {}
+    Word(const std::vector<Signal>& w) : _word(w) {}
     
-    Signal bit(int position)
+    Signal& bit(int position)
     {
       return _word.at(position);
     }
@@ -92,10 +94,20 @@ class Word
     {
       for (auto s : _word)
       {
-        std::cout << s;
+        std::cout << (int) s;
       } 
       std::cout << std::endl;
     } 
+    bool compare(const std::vector<Signal>& w) const
+    {
+      return w == _word;
+    } 
+
+    bool operator==(const Word<N>& other) const
+    {
+      return other.compare(_word); 
+    }
+
   private:
     std::vector<Signal> _word;
 };
@@ -136,7 +148,7 @@ class WordComponent
         o.printValue();
       }
       std::cout << std::endl;
-    }
+    } 
      
   protected:
     std::vector<Word<N>> _inputs;

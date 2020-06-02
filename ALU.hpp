@@ -52,30 +52,32 @@ class FullAdder : public Component
     OR _gate4;
 };
 
-template <int WordSize>
-class WordAdder : public WordComponent<WordSize>
+template <int N>
+class WordAdder : public WordComponent<N>
 {
   public:
-    WordAdder() : WordComponent<WordSize>(2, 1), _adders(WordSize) {}
+    WordAdder() : WordComponent<N>(2, 1), _adders(N) {}
  
     void process()
     {
-      auto word0 = this->_inputs.at(0);
-      auto word1 = this->_inputs.at(1);
-      auto result = this->_outputs.at(0);
+      Word<N>& word0 = this->_inputs.at(0);
+      Word<N>& word1 = this->_inputs.at(1);
+      Word<N>& result = this->_outputs.at(0);
 
-      for (auto i = 0; i < WordSize; ++i)
+      for (auto i = N-1; i >= 0; --i)
       {
-        auto a = _adders.at(i); 
+        FullAdder& a = _adders.at(i); 
+
         a.input(0, word0.bit(i));
         a.input(1, word1.bit(i));
-        
-        if (i+1 < WordSize)
+         
+        if (i < N-1)
         {
-          auto next = _adders.at(i+1);    
-          
+          a.input(2, _adders.at(i+1).output(1));    
         }
+
         a.process(); 
+        result.bit(i) = a.output(0);
       } 
     } 
   private:

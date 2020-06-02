@@ -10,77 +10,30 @@ void testOR();
 void testXOR();
 void testMultiplexer();
 void testFlipFlop();
+void testFullAdder();
+void testWordAdder();
+void testWordMultiplexer();
 
-int main(int argc, char** argv)
+void testAll()
 {
   testInverter();
   testNAND();
   testAND();
   testOR();
   testXOR();
-  testMultiplexer();
   testFlipFlop();
+  testFullAdder();
+  testWordAdder();
+  testMultiplexer();
+  testWordMultiplexer();
+}
+
+int main(int argc, char** argv)
+{
+  testAll();
   return 0;
 }
 
-void testMultiplexer()
-{
-  // (0, 0, 0) == 0
-  Multiplexer m;
-  m.input(0, 0);
-  m.input(1, 0);
-  m.control(0, 0);
-  assert(m.output() == 0);
-
-  // (0, 0, 1) == 0
-  m.input(0, 0);
-  m.input(1, 0);
-  m.control(0, 1);
-  m.process();
-  assert(m.output() == 0);
-
-  // (0, 1, 0) == 0
-  m.input(0, 0);
-  m.input(1, 1);
-  m.control(0, 0);
-  m.process();
-  assert(m.output() == 0);
-
-  // (0, 1, 1) == 1
-  m.input(0, 0);
-  m.input(1, 1);
-  m.control(0, 1);
-  m.process();
-  assert(m.output() == 1);
-
-  // (1, 0, 0) == 1
-  m.input(0, 1);
-  m.input(1, 0);
-  m.control(0, 0);
-  m.process();
-  assert(m.output() == 1);
-
-  // (1, 0, 1) == 0
-  m.input(0, 1);
-  m.input(1, 0);
-  m.control(0, 1);
-  m.process();
-  assert(m.output() == 0);
-
-  // (1, 1, 0) == 1
-  m.input(0, 1);
-  m.input(1, 1);
-  m.control(0, 0);
-  m.process();
-  assert(m.output() == 1);
-
-  // (1, 1, 1) == 1
-  m.input(0, 1);
-  m.input(1, 1);
-  m.control(0, 1);
-  m.process();
-  assert(m.output() == 1);
-}
 
 void testInverter()
 {
@@ -218,12 +171,14 @@ void testFlipFlop()
   FlipFlop d;
 
   // Input 1, Enable 1
+  // Output should change to 1
   d.input(0, 1);
   d.control(0, 1);
   d.process();
   assert(d.output() == 1);
 
   // Input 0, Enable 1 
+  // Output should change to 0
   d.input(0, 0);
   d.control(0, 1);
   d.process();
@@ -237,6 +192,7 @@ void testFlipFlop()
   assert(d.output() == 0);
 
   // Input 1, Enable 1
+  // Output should change to 1
   d.input(0, 1);
   d.control(0, 1);
   d.process();
@@ -248,9 +204,196 @@ void testFlipFlop()
   d.control(0, 0);
   d.process();
   assert(d.output() == 1);
+  
+  // Input 0, Enable 1
+  // Output should change to 0
+  d.input(0, 0);
+  d.control(0, 1);
+  d.process();
+  assert(d.output() == 0);
 }
 
 void testFullAdder()
 {
+  FullAdder a;
+  
+  // 0 + 0 + 0 == (0, 0)
+  a.input(0, 0);
+  a.input(1, 0);
+  a.input(2, 0);
+  a.process();
+  assert(a.output(0) == 0);
+  assert(a.output(1) == 0);
 
+  // 0 + 0 + 1 == (1, 0)
+  a.input(0, 0);
+  a.input(1, 0);
+  a.input(2, 1);
+  a.process();
+  assert(a.output(0) == 1);
+  assert(a.output(1) == 0);
+
+  // 0 + 1 + 0 == (1, 0)
+  a.input(0, 0);
+  a.input(1, 1);
+  a.input(2, 0);
+  a.process();
+  assert(a.output(0) == 1);
+  assert(a.output(1) == 0);
+  
+  // 0 + 1 + 1 == (0, 1)
+  a.input(0, 0);
+  a.input(1, 1);
+  a.input(2, 1);
+  a.process();
+  assert(a.output(0) == 0);
+  assert(a.output(1) == 1);
+  
+  // 1 + 0 + 0 == (1, 0)
+  a.input(0, 1);
+  a.input(1, 0);
+  a.input(2, 0);
+  a.process();
+  assert(a.output(0) == 1);
+  assert(a.output(1) == 0);
+
+  // 1 + 0 + 1 == (0, 1)
+  a.input(0, 1);
+  a.input(1, 0);
+  a.input(2, 1);
+  a.process();
+  assert(a.output(0) == 0);
+  assert(a.output(1) == 1);
+
+  // 1 + 1 + 0 == (0, 1)
+  a.input(0, 1);
+  a.input(1, 1);
+  a.input(2, 0);
+  a.process();
+  assert(a.output(0) == 0);
+  assert(a.output(1) == 1);
+  
+  // 1 + 1 + 1 == (1, 1)
+  a.input(0, 1);
+  a.input(1, 1);
+  a.input(2, 1);
+  a.process();
+  assert(a.output(0) == 1);
+  assert(a.output(1) == 1);
+}
+
+void testWordAdder()
+{
+  // 0111 + 0010 == 1001
+  WordAdder<4> a;
+
+  Word<4> w0({0,1,1,1}); 
+  Word<4> w1({0,0,1,0}); 
+  a.input(0, w0);
+  a.input(1, w1);
+  a.process();
+  assert(a.output() == Word<4>({1,0,0,1}));
+
+  // 01001011 + 00000011 == 01001110
+  WordAdder<8> b;
+  Word<8> w2({0,1,0,0,1,0,1,1}); 
+  Word<8> w3({0,0,0,0,0,0,1,1}); 
+  b.input(0, w2);
+  b.input(1, w3);
+  b.process();
+  assert(b.output() == Word<8>({0,1,0,0,1,1,1,0}));
+}
+
+void testMultiplexer()
+{
+  Multiplexer m;
+
+  // (0, 0, 0) == 0
+  m.input(0, 0);
+  m.input(1, 0);
+  m.control(0, 0);
+  m.process();
+  assert(m.output() == 0);
+
+  // (0, 0, 1) == 0
+  m.input(0, 0);
+  m.input(1, 0);
+  m.control(0, 1);
+  m.process();
+  assert(m.output() == 0);
+
+  // (0, 1, 0) == 0
+  m.input(0, 0);
+  m.input(1, 1);
+  m.control(0, 0);
+  m.process();
+  assert(m.output() == 0);
+
+  // (0, 1, 1) == 1
+  m.input(0, 0);
+  m.input(1, 1);
+  m.control(0, 1);
+  m.process();
+  assert(m.output() == 1);
+
+  // (1, 0, 0) == 1
+  m.input(0, 1);
+  m.input(1, 0);
+  m.control(0, 0);
+  m.process();
+  assert(m.output() == 1);
+
+  // (1, 0, 1) == 0
+  m.input(0, 1);
+  m.input(1, 0);
+  m.control(0, 1);
+  m.process();
+  assert(m.output() == 0);
+
+  // (1, 1, 0) == 1
+  m.input(0, 1);
+  m.input(1, 1);
+  m.control(0, 0);
+  m.process();
+  assert(m.output() == 1);
+
+  // (1, 1, 1) == 1
+  m.input(0, 1);
+  m.input(1, 1);
+  m.control(0, 1);
+  m.process();
+  assert(m.output() == 1);
+}
+
+void testDemultiplexer()
+{
+  Demultiplexer d;
+
+  // Input 0, Control 0 = (0, 0)
+  d.input(0, 0);
+  d.input(1, 0);
+  d.control(0, 0);
+  d.process();
+  assert(d.output() == 0);
+}
+
+void testWordMultiplexer()
+{
+  WordMultiplexer<4> m;
+
+  Word<4> w0({0,1,1,1}); 
+  Word<4> w1({0,0,1,0}); 
+
+  m.input(0, w0);
+  m.input(1, w1);
+
+  // Control 0 should return Word 0
+  m.control(0, 0);
+  m.process();
+  assert(m.output() == w0);
+
+  // Control 1 should return Word 1
+  m.control(0, 1);
+  m.process();
+  assert(m.output() == w1);
 }

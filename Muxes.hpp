@@ -41,22 +41,27 @@ class Multiplexer : public ControlComponent
     NAND _gate1, _gate2, _gate3;
 };
 
-template <int WordSize>
-class WordMultiplexer : public WordControlComponent<WordSize>
+// Multiplex an entire word at a time
+// Parameterized on word size
+
+template <int N> 
+class WordMultiplexer : public WordControlComponent<N>
 {
   public:
     WordMultiplexer() : 
-      WordControlComponent<WordSize>(2, 1, 1), _multiplexers(WordSize) {}
+      WordControlComponent<N>(2, 1, 1),
+      _multiplexers(N) {}
     
     void process()
     {
-      for (auto i = 0; i < WordSize; ++i)  
+      for (auto i = 0; i < N; ++i)  
       {
         Multiplexer& m = _multiplexers.at(i);
-        m.input(i, this->_inputs.at(0).bit(i));
-        m.input(i, this->_inputs.at(1).bit(i));
-        m.control(i, this->_controls.at(0));
+        m.input(0, this->_inputs.at(0).bit(i));
+        m.input(1, this->_inputs.at(1).bit(i));
+        m.control(0, this->_controls.at(0));
         m.process();
+        this->_outputs.at(0).bit(i) = m.output();
       }
     }
 
@@ -91,16 +96,16 @@ class Demultiplexer : public ControlComponent
     AND _gate1, _gate2; 
 };
 
-template <int WordSize>
-class WordDemultiplexer : public WordControlComponent<WordSize>
+template <int N>
+class WordDemultiplexer : public WordControlComponent<N>
 {
   public:
     WordDemultiplexer() : 
-      WordControlComponent<WordSize>(2, 1, 1), _demultiplexers(WordSize) {}
+      WordControlComponent<N>(2, 1, 1), _demultiplexers(N) {}
     
     void process()
     {
-      for (auto i = 0; i < WordSize; ++i)  
+      for (auto i = 0; i < N; ++i)  
       {
         Demultiplexer& m = _demultiplexers.at(i);
         m.input(i, this->_inputs.at(0).bit(i));
