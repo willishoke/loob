@@ -26,7 +26,6 @@ class Component
 
     // Process propogates a Signal through the component to its output
     virtual void process() = 0;
-
     
     void input(int channel, Signal s)
     {
@@ -34,25 +33,23 @@ class Component
     }
 
     // Get output from a component with a single output
-    Signal output()
+    Signal output() const
     {
       return _outputs.at(0);
     }
 
     // Get output from a multi-output component on a given channel
-    Signal output(int channel)
+    Signal output(int channel) const
     {
       return _outputs.at(channel);
     }
 
-    void printValue()
+    void printValue() const
     {
-      for (auto o : _outputs)
-      {
-        std::cout << (int) o;
-      }
+      for (auto o : _outputs) std::cout << (int) o;
       std::cout << std::endl;
     }
+
   protected:
     // These are for Signals.
     // They represent the last known state of inputs and outputs.
@@ -89,15 +86,13 @@ class Word
     {
       return _word.at(position);
     }
-
-    void printValue()
+    
+    void printValue() const
     {
-      for (auto s : _word)
-      {
-        std::cout << (int) s;
-      } 
+      for (auto s : _word) std::cout << (int) s;
       std::cout << std::endl;
     } 
+
     bool compare(const std::vector<Signal>& w) const
     {
       return w == _word;
@@ -130,23 +125,20 @@ class WordComponent
 
     // This happens ANY time ANY input is changed
     // Set input, then call process to update outputs
-    void input(int channel, Word<N>& s)
+    void input(int channel, const Word<N>& s)
     {
       _inputs.at(channel) = s;
     }
 
     // Get output from a multi-output component on a given channel
-    const Word<N>& output(int channel)
+    Word<N>& output(int channel)
     {
       return _outputs.at(channel);
     }
 
     void printValue()
     {
-      for (auto o : _outputs)
-      {
-        o.printValue();
-      }
+      for (auto o : _outputs) o.printValue();
     } 
      
   protected:
@@ -165,6 +157,7 @@ class WordControlComponent : public WordComponent<N>
     {
       _controls.at(channel) = s;
     }
+
   protected:
     std::vector<Signal> _controls;
 };

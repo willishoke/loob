@@ -2,6 +2,7 @@
 #define MUXES_HPP
 
 #include "Gates.hpp"
+#include <cmath>
 
 class Multiplexer : public ControlComponent
 {
@@ -124,104 +125,92 @@ class WordDemultiplexer : public WordControlComponent<N>
 
 // Multiplex an arbitrary number of Signals
 
-template <int N> // Parameterized on number of control bits
+template <int M> // Parameterized on number of control bits
 class Mux : public ControlComponent
 {
-  static_assert(N >= 1);
-
   public:
-    Mux() : ControlComponent (N*N, N, 1) {}
+    Mux() : 
+      ControlComponent (pow(2, M), M, 1),
+      _muxes(pow(2, M) - 1) {}
 
     void process()
     {
-      for (int i = 0; i < (N*N)/2; ++i)
+      // Reverse iterate to propogate forward.
+      for (auto i = pow(2, M) - 2; i >= 0; --i)
       {
-        _mux0.input(i, _inputs.at(i));
-        _mux1.input(i, _inputs.at(i + (N*N)/2));
+        int height = floor(log2(i+1));
+        std::cout << "i:" << i << " height: " << height << " M: " << M << std::endl;
+        auto& m = _muxes.at(i);
+        
+        // "Leaf node"
+        if (height == M-1)
+        {
+          int x = 2 * (i - (pow(2, height) - 1));
+          m.input(0, this->_inputs.at(x));
+          m.input(1, this->_inputs.at(x+1));
+        }
+        else
+        {
+          int x = 2 * (i + 1);
+          m.input(0, _muxes.at(x-1).output());
+          m.input(1, _muxes.at(x).output());
+        }
+
+        m.control(0, this->_controls.at(height));
+        m.process();
       }
 
-      _mux0.process();
-      _mux1.process();
-      
-      _mux2.input(0, _mux0.output());
-      _mux2.input(1, _mux1.output());
-      _mux2.process();
+      this->_outputs.at(0) = _muxes.at(0).output();
     }
 
   private:
-    Mux<N/2> _mux0;
-    Mux<N/2> _mux1;
-    Multiplexer _mux2;
+    std::vector<Multiplexer> _muxes;
 };
 
-template <> 
-class Mux<1> : public ControlComponent
-{
-  public:
-    Mux() : ControlComponent(2, 1, 1) {}
-    
-    void process()
-    {
-      _mux0.input(0, _inputs.at(0));
-      _mux0.input(1, _inputs.at(1)); 
-      _mux0.control(0, _controls.at(0)); 
-      _mux0.process();
-    }
-
-  private:
-    Multiplexer _mux0;
-};
 
 // Multiplex an arbitrary number of Words
 
-template <int N, int WordSize> // Parameterized on number of control bits
-class WordMux : public WordControlComponent<WordSize>
+template <int M, int N> // Parameterized on number of control bits
+class WordMux : public WordControlComponent<N>
 {
-  static_assert(N >= 1);
-
   public:
-    WordMux() : WordControlComponent<WordSize> (N*N, N, 1) {}
+    WordMux() : 
+      WordControlComponent<N> (pow(2, M), M, 1),
+      _muxes(pow(2, M) - 1) {}
 
     void process()
     {
-      _mux0.input(0, this->_inputs.at(0));
-      _mux0.input(1, this->_inputs.at(1));
-      _mux0.control(0, this->_controls.at(N));
-      _mux0.process();
-      /*
-      _mux1.input(0, this->_inputs.at(i + inputCount/2));
-      _mux1.input(1, this->_inputs.at(i + inputCount/2));
-      _mux1.control(0, this->_controls.at(N));
-      
-      _mux2.input(0, _mux0.output());
-      _mux2.input(1, _mux1.output());
-      _mux1.control(0, this->_controls.at(N-1));
+      // Reverse iterate to propogate forward.
+      for (auto i = pow(2, M) - 2; i >= 0; --i)
+      {
+        int height = floor(log2(i+1));
+        std::cout << "i:" << i << " height: " << height << " M: " << M << std::endl;
+        auto& m = _muxes.at(i);
+        
+        // "Leaf node"
+        if (height == M-1)
+        {
+          int x = 2 * (i - (pow(2, height) - 1));
+          m.input(0, this->_inputs.at(x));
+          m.input(1, this->_inputs.at(x+1));
+        }
+        else
+        {
+          int x = 2 * (i + 1);
+          m.input(0, _muxes.at(x-1).output());
+          m.input(1, _muxes.at(x).output());
+        }
 
-      */
+        m.control(0, this->_controls.at(height));
+        m.process();
+      }
+
+      this->_outputs.at(0) = _muxes.at(0).output();
     }
 
   private:
-    WordMux<N-1, WordSize> _mux0;
-    WordMux<N-1, WordSize> _mux1;
-    WordMultiplexer<WordSize> _mux2;
+    std::vector<WordMultiplexer<N>> _muxes;
 };
 
-template <int WordSize> 
-class WordMux<1, WordSize> : public WordControlComponent<WordSize>
-{
-  public:
-    WordMux() : WordControlComponent<WordSize>(2, 1, 1) {}
-    
-    void process()
-    {
-      _mux0.input(0, this->_inputs.at(0));
-      _mux0.input(1, this->_inputs.at(1)); 
-      _mux0.control(0, this->_controls.at(0)); 
-      _mux0.process();
-    }
-
-  private:
-    WordMultiplexer<WordSize> _mux0;
-};
 
 #endif // MUXES_HPP

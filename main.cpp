@@ -16,7 +16,9 @@ void testWordOR();
 void testWordXOR();
 
 void testMultiplexer();
+void testMux();
 void testWordMultiplexer();
+void testWordMux();
 void testDemultiplexer();
 void testWordDemultiplexer();
 
@@ -59,7 +61,9 @@ void testArithmetic()
 void testMultiplexers()
 {
   testMultiplexer();
+  testMux();
   testWordMultiplexer();
+  testWordMux();
   testDemultiplexer();
   testWordDemultiplexer();
 }
@@ -361,6 +365,11 @@ void testMultiplexer()
   assert(m.output() == 1);
 }
 
+void testMux()
+{
+  Mux<8> m;
+}
+
 void testDemultiplexer()
 {
   Demultiplexer d;
@@ -436,6 +445,76 @@ void testWordDemultiplexer()
   assert(d.output(1) == w0);
 }
 
+void testWordMux()
+{
+  WordMux<3, 4> m;
+
+  Word<4> w0({0,0,0,0}); 
+  Word<4> w1({0,0,0,1}); 
+  Word<4> w2({0,0,1,0}); 
+  Word<4> w3({0,0,1,1}); 
+  Word<4> w4({0,1,0,0}); 
+  Word<4> w5({0,1,0,1}); 
+  Word<4> w6({0,1,1,0}); 
+  Word<4> w7({0,1,1,1}); 
+
+  m.input(0, w0); 
+  m.input(1, w1); 
+  m.input(2, w2); 
+  m.input(3, w3); 
+  m.input(4, w4); 
+  m.input(5, w5); 
+  m.input(6, w6); 
+  m.input(7, w7); 
+
+  m.control(0, 0);
+  m.control(1, 0);
+  m.control(2, 0);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 0);
+  m.control(1, 0);
+  m.control(2, 1);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 0);
+  m.control(1, 1);
+  m.control(2, 0);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 0);
+  m.control(1, 1);
+  m.control(2, 1);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 1);
+  m.control(1, 0);
+  m.control(2, 0);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 1);
+  m.control(1, 0);
+  m.control(2, 1);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 1);
+  m.control(1, 1);
+  m.control(2, 0);
+  m.process();  
+  m.printValue();
+
+  m.control(0, 1);
+  m.control(1, 1);
+  m.control(2, 1);
+  m.process();  
+  m.printValue();
+}
 
 // ARITHMETIC TESTS
 
@@ -565,13 +644,35 @@ void testWordAdder()
 
 void testWordMultiplier()
 {
-  WordMultiplier<8> m;
-  Word<8> w0({0,0,0,0,1,0,1,1}); 
-  Word<8> w1({0,0,0,0,0,0,1,1}); 
-  Word<8> w2({0,0,1,0,0,0,0,1}); 
+  WordMultiplier<4> m0;
+  Word<4> w0({0,0,1,1}); 
+  Word<4> w1({0,0,1,0}); 
+  Word<4> w2({0,1,1,0}); 
+
+  // 0011 * 0010 = 0110
+  // (3 * 2 == 6)
+  w0.printValue();
+  w1.printValue();
+  m0.input(0, w0);
+  m0.input(1, w1);
+  m0.process(); 
+  assert(m0.output() == w2);
+  m0.printValue();
+
+  WordMultiplier<8> m1;
+  Word<8> w3({0,0,0,0,1,0,1,1}); 
+  Word<8> w4({0,0,0,0,0,0,1,1}); 
+  Word<8> w5({0,0,1,0,0,0,0,1}); 
 
   // 00001011 * 00000011 = 00100001
   // (3 * 11 == 33)
+  w3.printValue();
+  w4.printValue();
+  m1.input(0, w3);
+  m1.input(1, w4);
+  m1.process(); 
+  assert(m1.output() == w5);
+  m1.printValue();
 }
 
 // MEMORY TESTS

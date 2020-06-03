@@ -2,9 +2,12 @@
 #define ALU_HPP
 
 #include <vector>
-#include <cmath>
+#include <algorithm>
 #include "Muxes.hpp"
 #include "Memory.hpp"
+
+
+// Add two bits, plus a carry out
 
 class HalfAdder : public Component
 {
@@ -34,6 +37,9 @@ class HalfAdder : public Component
     XOR _gate0;
     AND _gate1;
 };
+
+
+// Add two bits, plus a carry in/out bit
 
 class FullAdder : public Component
 {
@@ -70,6 +76,10 @@ class FullAdder : public Component
     OR _gate0;
 };
 
+
+// Add two N-bit words
+// Two word inputs and a single word output
+
 template <int N>
 class WordAdder : public WordComponent<N>
 {
@@ -102,6 +112,7 @@ class WordAdder : public WordComponent<N>
     std::vector<FullAdder> _adders;
 };
 
+
 // Parameterized on word size
 // Hard to explain the logic on this one, but I ended up making
 // a lot of drawings. 
@@ -119,21 +130,40 @@ class WordMultiplier : public WordComponent<N>
     {
       for (auto i = 0; i < N; ++i) // Rows
       {
-        for (auto j = i; j < N; ++j) // Columns
+        std::vector<Signal> v0(N, 0); // Init to zeroes
+
+        for (auto j = N - 1; j >= i; --j) // Columns
         {
-          auto index = N*i+j;
+          // This turns a "square" index into a flattened "triangle"
+          auto index = N*i+j - ((i*i+i)/2);
           AND& g = _gates.at(index);
-          g.input(0,this->_inputs.at(0).bit(j));
+          g.input(0,this->_inputs.at(0).bit(N-i-1));
           g.input(1,this->_inputs.at(1).bit(j));
           g.process();
+          v0.at(j-i) = g.output(); // Fill result array 
+        }
+
+        Word<N> w0(v0);
+
+        if (i == 0)
+        {
+          _adders.at(i).input(0, w0);
+        } 
+        else
+        {
+          _adders.at(i-1).input(1, w0);          
+          _adders.at(i-1).process();
+          Word<N> w = _adders.at(i-1).output();
+          if (i + 1 == N) this->_outputs.at(0) = w;
+          else _adders.at(i).input(0, w);
         }
       }
     }
   private:
-    // These calculate partial products
     std::vector<AND> _gates;
     std::vector<WordAdder<N>> _adders;
 };
+
 
 class ALU : public Component
 {
@@ -144,14 +174,5 @@ class ALU : public Component
   private:
 };
 
-class CPU : public Component
-{
-  public:
-    void process()
-    {
-    }
-  private:
-    ALU alu;
-};
 
 #endif //ALU_HPP
