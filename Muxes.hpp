@@ -1,8 +1,8 @@
 #ifndef MUXES_HPP
 #define MUXES_HPP
 
-#include "Gates.hpp"
 #include <cmath>
+#include "Gates.hpp"
 
 
 // Simple 2 to 1 multiplexer
@@ -97,7 +97,8 @@ class WordDecoder : public WordControlComponent<N>
 {
   public:
     WordDecoder() : 
-      WordControlComponent<N>(1, 1, 2), _demultiplexers(N) {}
+      WordControlComponent<N>(1, 1, 2),
+      _demultiplexers(N) {}
     
     void process();
 
@@ -105,6 +106,40 @@ class WordDecoder : public WordControlComponent<N>
     std::vector<Decoder> _demultiplexers;
 };
 
+
+// 1 to 2^M decoder
+
+template <int M>
+class OnetoNDecoder : public ControlComponent
+{
+  public:
+    OnetoNDecoder() : 
+      ControlComponent(1, M, pow(2, M)),
+      _decoders(pow(2, M) - 1) {}
+    
+    void process();
+
+  private:
+    std::vector<Decoder> _decoders;
+};
+
+// 1 to 2^M decoder for N-bit word
+template <int M, int N>
+class OnetoNWordDecoder : public WordControlComponent<N>
+{
+  public:
+    OnetoNWordDecoder() : 
+      WordControlComponent<N>(1, M, pow(2, M)), 
+      _decoders(pow(2, M) - 1) {}
+    
+    void process();
+
+  private:
+    std::vector<WordDecoder<N>> _decoders;
+};
+
+
+// PROCESS DEFINITIONS
 
 void Multiplexer::process()
 {
@@ -249,6 +284,70 @@ void WordDecoder<N>::process()
 }
 
 
+template <int M>
+void OnetoNDecoder<M>::process()
+{
+  for (auto i = 0; i < pow(2, M) - 1; ++i)
+  {
+    int height = floor(log2(i+1));
+
+    Decoder& d = _decoders.at(i);
+
+    if (i == 0)
+    {
+      d.input(0, this->_inputs.at(0));
+    }
+    else
+    {
+      int index = (i-1)/2;
+      auto& parent = _decoders.at(index);
+      d.input(0, parent.output(i%2));
+    }
+
+    d.control(0, this->_controls.at(height));
+    d.process();
+  }   
+
+  for (auto i = 0; i < pow(2, M); ++i)
+  {
+    int index = i/2 + (pow(2,M-1) - 1);
+    Decoder& d = _decoders.at(index);
+    this->_outputs.at(pow(2,M) - 1 - i) = d.output((i+1)%2); 
+  }     
+}
+
+template <int M, int N>
+void OnetoNWordDecoder<M, N>::process()
+{
+  for (auto i = 0; i < pow(2, M) - 1; ++i)
+  {
+    int height = floor(log2(i+1));
+
+    WordDecoder<N>& d = _decoders.at(i);
+
+    if (i == 0)
+    {
+      d.input(0, this->_inputs.at(0));
+    }
+    else
+    {
+      int index = (i-1)/2;
+      auto& parent = _decoders.at(index);
+      d.input(0, parent.output(i%2));
+    }
+
+    d.control(0, this->_controls.at(height));
+    d.process();
+  }   
+
+  for (auto i = 0; i < pow(2, M); ++i)
+  {
+    int index = i/2 + (pow(2,M-1) - 1);
+    WordDecoder<N>& d = _decoders.at(index);
+    this->_outputs.at(pow(2,M) - 1 - i) = d.output((i+1)%2); 
+  }     
+}
+
 // MULTIPLEXER TESTS
 
 void testMultiplexer()
@@ -368,6 +467,53 @@ void testDecoder()
   d.process();
   assert(d.output(0) == 0);
   assert(d.output(1) == 1);
+}
+
+void testOnetoNDecoder()
+{
+  OnetoNDecoder<3> d;
+  
+  d.input(0, 1);
+
+  d.control(0, 0);
+  d.control(1, 0);
+  d.control(2, 0);
+
+  d.process();
+
+  assert(d.output(0) == 1);
+  assert(d.output(1) == 0);
+  assert(d.output(2) == 0);
+  assert(d.output(3) == 0);
+  assert(d.output(4) == 0);
+  assert(d.output(5) == 0);
+  assert(d.output(6) == 0);
+  assert(d.output(7) == 0);
+}
+
+void testOnetoNWordDecoder()
+{
+  OnetoNWordDecoder<3, 4> d;
+  
+  Word<4> w0({0,1,1,1}); 
+  Word<4> zeroes({0,0,0,0}); 
+
+  d.input(0, w0);
+
+  d.control(0, 1);
+  d.control(1, 1);
+  d.control(2, 1);
+
+  d.process();
+
+  assert(d.output(0) == zeroes);
+  assert(d.output(1) == zeroes);
+  assert(d.output(2) == zeroes);
+  assert(d.output(3) == zeroes);
+  assert(d.output(4) == zeroes);
+  assert(d.output(5) == zeroes);
+  assert(d.output(6) == zeroes);
+  assert(d.output(7) == w0);
 }
 
 void testWordMultiplexer()
@@ -493,6 +639,8 @@ void testMultiplexers()
   testNto1WordMultiplexer();
   testDecoder();
   testWordDecoder();
+  testOnetoNDecoder();
+  testOnetoNWordDecoder();
 }
 
 

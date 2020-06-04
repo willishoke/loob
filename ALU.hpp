@@ -2,7 +2,7 @@
 #define ALU_HPP
 
 #include <vector>
-#include <algorithm>
+
 #include "Muxes.hpp"
 #include "Memory.hpp"
 
@@ -387,6 +387,40 @@ void testWordMultiplier()
   assert(m1.output() == w5);
 }
 
+void testALU()
+{
+  ALU<16> a;
+
+  Word<16> w0({0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1}); 
+  Word<16> w1({0,0,0,0,0,0,0,0,1,0,1,0,1,1,0,1}); 
+  Word<16> plus({0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0}); 
+  Word<16> times({0,0,1,1,0,0,1,0,1,0,1,0,1,1,1,1}); 
+  Word<16> band({0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1}); 
+  Word<16> bor({0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1}); 
+
+  a.input(0, w0);
+  a.input(1, w1);
+
+  a.control(0, 0);
+  a.control(1, 0);
+  a.process();
+  assert(a.output() == plus);
+
+  a.control(0, 0);
+  a.control(1, 1);
+  a.process();
+  assert(a.output() == times);
+
+  a.control(0, 1);
+  a.control(1, 0);
+  a.process();
+  assert(a.output() == band);
+
+  a.control(0, 1);
+  a.control(1, 1);
+  a.process();
+  assert(a.output() == bor);
+}
 
 // Run all tests on ALU components
 void testArithmetic()
