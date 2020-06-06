@@ -12,10 +12,13 @@
 
 - Gates
 - Multiplexers
-- Decoders
+- Demultiplexers 
 - Adders
 - Multipliers
+- Bitwise operators
 - Shift registers
-- Flip Flops
+- Flip flops
+- ALU
+- RAM
 
 all with support for arbitrarily large word sizes.

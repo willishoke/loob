@@ -77,8 +77,8 @@ class RAM : public WordControlComponent<N>
   private:
     std::vector<WordMemory<N>> _words;
     Nto1WordMultiplexer<M-1, N> _multiplexer;
-    OnetoNWordDecoder<M-1, N> _decoder0;
-    OnetoNDecoder<M-1> _decoder1;
+    OnetoNWordDemultiplexer<M-1, N> _demultiplexer0;
+    OnetoNDemultiplexer<M-1> _demultiplexer1;
 };
 
 
@@ -180,25 +180,25 @@ void RAM<M, N>::process()
 {
   for (auto i = 0; i < M-1; ++i)
   {
-    // Decoders and multiplexer share control bits 1..M-1
-    _decoder0.control(i, this->_controls.at(i+1));  
-    _decoder1.control(i, this->_controls.at(i+1));  
+    // Demultiplexers and multiplexer share control bits 1..M-1
+    _demultiplexer0.control(i, this->_controls.at(i+1));  
+    _demultiplexer1.control(i, this->_controls.at(i+1));  
     _multiplexer.control(i, this->_controls.at(i+1));  
   }
 
   // This controls where the input is sent to
-  _decoder0.input(0, this->_inputs.at(0));
-  _decoder0.process();
+  _demultiplexer0.input(0, this->_inputs.at(0));
+  _demultiplexer0.process();
 
   // This controls which word gets control signal
-  _decoder1.input(0, this->_controls.at(0));
-  _decoder1.process();
+  _demultiplexer1.input(0, this->_controls.at(0));
+  _demultiplexer1.process();
 
   for (auto i = 0; i < pow(2, M-1); ++i)
   {
-    // Send decoder output to memory
-    _words.at(i).input(0, _decoder0.output(i));
-    _words.at(i).control(0, _decoder1.output(i));
+    // Send demultiplexer output to memory
+    _words.at(i).input(0, _demultiplexer0.output(i));
+    _words.at(i).control(0, _demultiplexer1.output(i));
     _words.at(i).process(); // Noop if enable bit not set
     _multiplexer.input(i, _words.at(i).output());
   }

@@ -75,12 +75,12 @@ class Nto1WordMultiplexer : public WordControlComponent<N>
 };
 
 
-// Simple 1 to 2 decoder
+// Simple 1 to 2 demultiplexer
 
-class Decoder : public ControlComponent
+class Demultiplexer : public ControlComponent
 {
   public:
-    Decoder() : ControlComponent(1, 1, 2) {}
+    Demultiplexer() : ControlComponent(1, 1, 2) {}
     
     void process();
 
@@ -90,52 +90,52 @@ class Decoder : public ControlComponent
 };
 
 
-// 1 to 2 decoder for N-bit word
+// 1 to 2 demultiplexer for N-bit word
 
 template <int N>
-class WordDecoder : public WordControlComponent<N>
+class WordDemultiplexer : public WordControlComponent<N>
 {
   public:
-    WordDecoder() : 
+    WordDemultiplexer() : 
       WordControlComponent<N>(1, 1, 2),
       _demultiplexers(N) {}
     
     void process();
 
   private:
-    std::vector<Decoder> _demultiplexers;
+    std::vector<Demultiplexer> _demultiplexers;
 };
 
 
-// 1 to 2^M decoder
+// 1 to 2^M demultiplexer
 
 template <int M>
-class OnetoNDecoder : public ControlComponent
+class OnetoNDemultiplexer : public ControlComponent
 {
   public:
-    OnetoNDecoder() : 
+    OnetoNDemultiplexer() : 
       ControlComponent(1, M, pow(2, M)),
-      _decoders(pow(2, M) - 1) {}
+      _demultiplexers(pow(2, M) - 1) {}
     
     void process();
 
   private:
-    std::vector<Decoder> _decoders;
+    std::vector<Demultiplexer> _demultiplexers;
 };
 
-// 1 to 2^M decoder for N-bit word
+// 1 to 2^M demultiplexer for N-bit word
 template <int M, int N>
-class OnetoNWordDecoder : public WordControlComponent<N>
+class OnetoNWordDemultiplexer : public WordControlComponent<N>
 {
   public:
-    OnetoNWordDecoder() : 
+    OnetoNWordDemultiplexer() : 
       WordControlComponent<N>(1, M, pow(2, M)), 
-      _decoders(pow(2, M) - 1) {}
+      _demultiplexers(pow(2, M) - 1) {}
     
     void process();
 
   private:
-    std::vector<WordDecoder<N>> _decoders;
+    std::vector<WordDemultiplexer<N>> _demultiplexers;
 };
 
 
@@ -249,7 +249,7 @@ void Nto1WordMultiplexer<M, N>::process()
 }
 
 
-void Decoder::process()
+void Demultiplexer::process()
 {
   _gate0.input(0, _controls.at(0));
   _gate0.process();
@@ -268,11 +268,11 @@ void Decoder::process()
 
 
 template <int N>
-void WordDecoder<N>::process()
+void WordDemultiplexer<N>::process()
 {
   for (auto i = 0; i < N; ++i)  
   {
-    Decoder& d = _demultiplexers.at(i);
+    Demultiplexer& d = _demultiplexers.at(i);
 
     d.input(0, this->_inputs.at(0).bit(i));
     d.control(0, this->_controls.at(0));
@@ -285,13 +285,13 @@ void WordDecoder<N>::process()
 
 
 template <int M>
-void OnetoNDecoder<M>::process()
+void OnetoNDemultiplexer<M>::process()
 {
   for (auto i = 0; i < pow(2, M) - 1; ++i)
   {
     int height = floor(log2(i+1));
 
-    Decoder& d = _decoders.at(i);
+    Demultiplexer& d = _demultiplexers.at(i);
 
     if (i == 0)
     {
@@ -300,7 +300,7 @@ void OnetoNDecoder<M>::process()
     else
     {
       int index = (i-1)/2;
-      auto& parent = _decoders.at(index);
+      auto& parent = _demultiplexers.at(index);
       d.input(0, parent.output(i%2));
     }
 
@@ -311,19 +311,19 @@ void OnetoNDecoder<M>::process()
   for (auto i = 0; i < pow(2, M); ++i)
   {
     int index = i/2 + (pow(2,M-1) - 1);
-    Decoder& d = _decoders.at(index);
+    Demultiplexer& d = _demultiplexers.at(index);
     this->_outputs.at(pow(2,M) - 1 - i) = d.output((i+1)%2); 
   }     
 }
 
 template <int M, int N>
-void OnetoNWordDecoder<M, N>::process()
+void OnetoNWordDemultiplexer<M, N>::process()
 {
   for (auto i = 0; i < pow(2, M) - 1; ++i)
   {
     int height = floor(log2(i+1));
 
-    WordDecoder<N>& d = _decoders.at(i);
+    WordDemultiplexer<N>& d = _demultiplexers.at(i);
 
     if (i == 0)
     {
@@ -332,7 +332,7 @@ void OnetoNWordDecoder<M, N>::process()
     else
     {
       int index = (i-1)/2;
-      auto& parent = _decoders.at(index);
+      auto& parent = _demultiplexers.at(index);
       d.input(0, parent.output(i%2));
     }
 
@@ -343,7 +343,7 @@ void OnetoNWordDecoder<M, N>::process()
   for (auto i = 0; i < pow(2, M); ++i)
   {
     int index = i/2 + (pow(2,M-1) - 1);
-    WordDecoder<N>& d = _decoders.at(index);
+    WordDemultiplexer<N>& d = _demultiplexers.at(index);
     this->_outputs.at(pow(2,M) - 1 - i) = d.output((i+1)%2); 
   }     
 }
@@ -436,9 +436,9 @@ void testNto1Multiplexer()
   assert(m.output() == 1);
 }
 
-void testDecoder()
+void testDemultiplexer()
 {
-  Decoder d;
+  Demultiplexer d;
 
   // Input 0, Control 0 = (0, 0)
   d.input(0, 0);
@@ -469,9 +469,9 @@ void testDecoder()
   assert(d.output(1) == 1);
 }
 
-void testOnetoNDecoder()
+void testOnetoNDemultiplexer()
 {
-  OnetoNDecoder<3> d;
+  OnetoNDemultiplexer<3> d;
   
   d.input(0, 1);
 
@@ -491,9 +491,9 @@ void testOnetoNDecoder()
   assert(d.output(7) == 0);
 }
 
-void testOnetoNWordDecoder()
+void testOnetoNWordDemultiplexer()
 {
-  OnetoNWordDecoder<3, 4> d;
+  OnetoNWordDemultiplexer<3, 4> d;
   
   Word<4> w0({0,1,1,1}); 
   Word<4> zeroes({0,0,0,0}); 
@@ -537,9 +537,9 @@ void testWordMultiplexer()
   assert(m.output() == w1);
 }
 
-void testWordDecoder()
+void testWordDemultiplexer()
 {
-  WordDecoder<4> d;
+  WordDemultiplexer<4> d;
 
   Word<4> w0({0,1,1,1}); 
   Word<4> zeroes({0,0,0,0}); 
@@ -637,10 +637,10 @@ void testMultiplexers()
   testNto1Multiplexer();
   testWordMultiplexer();
   testNto1WordMultiplexer();
-  testDecoder();
-  testWordDecoder();
-  testOnetoNDecoder();
-  testOnetoNWordDecoder();
+  testDemultiplexer();
+  testWordDemultiplexer();
+  testOnetoNDemultiplexer();
+  testOnetoNWordDemultiplexer();
 }
 
 
